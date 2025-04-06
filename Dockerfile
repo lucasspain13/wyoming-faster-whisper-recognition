@@ -26,4 +26,6 @@ RUN mkdir -p /data
 CMD ["python", "-m", "wyoming_faster_whisper", \
     "--model", "base", \
     "--uri", "tcp://0.0.0.0:10300", \
-    "--data-dir", "/data"]
+    "--data-dir", "./data", \
+    "--download-dir", "./models", \
+    "--embeddings-file", "./data/user_embeddings.pkl"]

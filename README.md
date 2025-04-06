@@ -1,5 +1,11 @@
 # Wyoming Faster Whisper with Speaker Identification
 
+### Forked From
+
+[wyoming-faster-whisper](https://github.com/rhasspy/wyoming-faster-whisper)
+
+Whisper transcription and wyoming communication was provided by the fork. This repository adds a script and instructions for training an embedding file on 1 or more user voices. These user's will be passed to the conversation agent with the transcribed text for personalized threads by user.
+
 [Wyoming protocol](https://github.com/rhasspy/wyoming) server for [faster-whisper](https://github.com/guillaumekln/faster-whisper/) with speaker identification.
 
 ## Features
