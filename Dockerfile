@@ -3,6 +3,7 @@ FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    gcc \
     ffmpeg \
     libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
@@ -28,4 +29,4 @@ CMD ["python", "-m", "wyoming_faster_whisper", \
     "--uri", "tcp://0.0.0.0:10300", \
     "--data-dir", "./data", \
     "--download-dir", "./models", \
-    "--embeddings-file", "./data/user_embeddings.pkl"]
+    "--embeddings-file", "./data/user_embeddings.pkl", "--debug"]
