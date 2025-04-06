@@ -91,7 +91,8 @@ class FasterWhisperEventHandler(AsyncEventHandler):
                     speaker = None
                 _LOGGER.debug("Identified speaker: %s", speaker)
 
-            await self.write_event(Transcript(text=text).event())
+            payload: str = str({"text": text, "speaker": speaker if speaker else "guest"})
+            await self.write_event(Transcript(text=payload).event())
             return False
 
         return True
