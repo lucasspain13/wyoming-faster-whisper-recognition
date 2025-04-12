@@ -8,6 +8,8 @@ Whisper transcription and wyoming communication was provided by the fork. This r
 
 [Wyoming protocol](https://github.com/rhasspy/wyoming) server for [faster-whisper](https://github.com/guillaumekln/faster-whisper/) with speaker identification.
 
+See more at [my site](https://lucas-spain.com)
+
 ## Features
 
 - Fast, accurate speech-to-text transcription
