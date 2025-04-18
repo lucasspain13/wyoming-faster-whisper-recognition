@@ -50,6 +50,11 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self._wav_file = None
 
     async def handle_event(self, event: Event) -> bool:
+        # Respond to Describe event with Info event
+        if Describe.is_type(event.type):
+            await self.write_event(self.wyoming_info_event)
+            return True
+
         if AudioChunk.is_type(event.type):
             chunk = AudioChunk.from_event(event)
             if self._wav_file is None:
