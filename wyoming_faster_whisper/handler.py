@@ -14,6 +14,9 @@ from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
 from wyoming.server import AsyncEventHandler
+import torch
+import librosa
+import numpy as np
 
 from .speaker_identifier import load_embeddings, identify_speaker
 
@@ -38,9 +41,15 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self.initial_prompt = initial_prompt
         self._language = self.cli_args.language
 
-        # Minimal speaker ID addition
+        # Optimized VoiceEncoder device selection
         from resemblyzer import VoiceEncoder
-        self.voice_encoder = VoiceEncoder()
+        if torch.cuda.is_available():
+            encoder_device = "cuda"
+        elif torch.backends.mps.is_available():
+            encoder_device = "mps"
+        else:
+            encoder_device = "cpu"
+        self.voice_encoder = VoiceEncoder(device=encoder_device)
         self.speaker_embeddings = None
         if getattr(cli_args, "embeddings_file", None):
             self.speaker_embeddings = load_embeddings(Path(cli_args.embeddings_file))
@@ -69,35 +78,49 @@ class FasterWhisperEventHandler(AsyncEventHandler):
             self._wav_file.close()
             self._wav_file = None
 
-            async with self.model_lock:
-                segments, _info = self.model.transcribe(
-                    self._wav_path,
-                    beam_size=self.cli_args.beam_size,
-                    language=self._language,
-                    initial_prompt=self.initial_prompt,
-                )
-
-            text = " ".join(segment.text for segment in segments)
-            _LOGGER.info(text)
-
-            # Minimal speaker ID addition
-            speaker = None
-            if self.speaker_embeddings:
-                from resemblyzer import preprocess_wav
-                try:
-                    wav = preprocess_wav(self._wav_path)
-                    speaker = identify_speaker(
-                        wav,  # Pass preprocessed audio
-                        self.speaker_embeddings,
-                        self.voice_encoder
-                    )
-                except Exception as e:
-                    _LOGGER.error("Speaker identification failed: %s", e)
-                    speaker = None
-                _LOGGER.debug("Identified speaker: %s", speaker)
+            # Start both tasks in parallel
+            transcription_task = asyncio.create_task(self._transcribe_audio())
+            speaker_task = asyncio.create_task(self._identify_speaker_optimized())
+            text, speaker = await asyncio.gather(transcription_task, speaker_task)
 
             payload: str = str({"text": text, "speaker": speaker if speaker else "guest"})
             await self.write_event(Transcript(text=payload).event())
             return False
 
         return True
+
+    async def _transcribe_audio(self) -> str:
+        async with self.model_lock:
+            segments, _info = self.model.transcribe(
+                self._wav_path,
+                beam_size=self.cli_args.beam_size,
+                language=self._language,
+                initial_prompt=self.initial_prompt,
+            )
+        text = " ".join(segment.text for segment in segments)
+        _LOGGER.info(text)
+        return text
+
+    async def _identify_speaker_optimized(self) -> Optional[str]:
+        if not self.speaker_embeddings:
+            return None
+        try:
+            from resemblyzer import preprocess_wav
+            # Load and preprocess audio in memory
+            wav = preprocess_wav(self._wav_path)
+            # Trim silence using librosa
+            trimmed_wav, _ = librosa.effects.trim(wav, top_db=20)
+            # If trimming removed everything, fall back to original
+            if trimmed_wav.size == 0:
+                trimmed_wav = wav
+            # Compute embedding (in-memory)
+            speaker = identify_speaker(
+                trimmed_wav,
+                self.speaker_embeddings,
+                self.voice_encoder
+            )
+            _LOGGER.debug("Identified speaker: %s", speaker)
+            return speaker
+        except Exception as e:
+            _LOGGER.error("Speaker identification failed: %s", e)
+            return None
