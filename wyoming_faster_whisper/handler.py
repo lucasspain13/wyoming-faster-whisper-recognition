@@ -8,7 +8,7 @@ import wave
 from pathlib import Path
 from typing import Optional
 
-import faster_whisper
+import nemo.collections.asr as nemo_asr
 from wyoming.asr import Transcribe, Transcript
 from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
@@ -16,18 +16,19 @@ from wyoming.info import Describe, Info
 from wyoming.server import AsyncEventHandler
 import torch
 import librosa
+import soundfile as sf
 import numpy as np
 
 from .speaker_identifier import load_embeddings, identify_speaker
 
 _LOGGER = logging.getLogger(__name__)
 
-class FasterWhisperEventHandler(AsyncEventHandler):
+class ParakeetEventHandler(AsyncEventHandler):
     def __init__(
         self,
         wyoming_info: Info,
         cli_args: argparse.Namespace,
-        model: faster_whisper.WhisperModel,
+        model: nemo_asr.models.ASRModel,
         model_lock: asyncio.Lock,
         *args,
         initial_prompt: Optional[str] = None,
@@ -91,13 +92,30 @@ class FasterWhisperEventHandler(AsyncEventHandler):
 
     async def _transcribe_audio(self) -> str:
         async with self.model_lock:
-            segments, _info = self.model.transcribe(
-                self._wav_path,
-                beam_size=self.cli_args.beam_size,
-                language=self._language,
-                initial_prompt=self.initial_prompt,
-            )
-        text = " ".join(segment.text for segment in segments)
+            # Convert audio to proper format for NeMo (mono, 16kHz)
+            # Load and convert the audio
+            audio, sr = librosa.load(self._wav_path, sr=16000, mono=True)
+            
+            # Create a temporary file with proper format
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                temp_path = temp_file.name
+                sf.write(temp_path, audio, 16000)
+            
+            try:
+                # NeMo transcribe method returns a list of transcription results
+                transcriptions = self.model.transcribe([temp_path])
+                if transcriptions and len(transcriptions) > 0:
+                    result = transcriptions[0]
+                    if hasattr(result, 'text'):
+                        text = result.text
+                    else:
+                        text = str(result)
+                else:
+                    text = ""
+            finally:
+                # Clean up temporary file
+                os.unlink(temp_path)
+                
         _LOGGER.info(text)
         return text
 

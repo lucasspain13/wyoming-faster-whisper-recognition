@@ -21,16 +21,16 @@ def load_embeddings(path: str) -> Dict[str, np.ndarray]:
         raise
 
 def identify_speaker(
-    audio_path: str,
+    audio_input,
     embeddings: Dict[str, np.ndarray],
     encoder: VoiceEncoder,
     threshold: float = 0.35,
 ) -> Optional[str]:
     """
-    Identify speaker in audio file by comparing against known embeddings.
+    Identify speaker in audio file or array by comparing against known embeddings.
     
     Args:
-        audio_path: Path to audio file to identify
+        audio_input: Path to audio file (str) or preprocessed audio array (np.ndarray)
         embeddings: Dictionary of {speaker_name: embedding}
         encoder: Initialized VoiceEncoder instance
         threshold: Minimum similarity score (0-1) to consider a match
@@ -38,12 +38,19 @@ def identify_speaker(
     Returns:
         Name of best matching speaker or None if no match meets threshold
     """
-    _LOGGER.debug("Identifying speaker for %s", audio_path)
+    _LOGGER.debug("Identifying speaker for input: %s", type(audio_input))
     
     try:
         # Compute embedding for input audio
         _LOGGER.debug("Computing embedding for audio")
-        embedding = encoder.embed_utterance(audio_path)
+        if isinstance(audio_input, str):
+            # File path - use embed_utterance directly
+            embedding = encoder.embed_utterance(audio_input)
+        elif isinstance(audio_input, np.ndarray):
+            # Numpy array - use embed_utterance with preprocessed wav
+            embedding = encoder.embed_utterance(audio_input)
+        else:
+            raise ValueError(f"Unsupported audio_input type: {type(audio_input)}")
         
         # Find best matching speaker
         best_speaker = None

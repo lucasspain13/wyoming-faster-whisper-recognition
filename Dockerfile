@@ -4,6 +4,7 @@ FROM python:3.11-slim
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
     ffmpeg \
     libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
@@ -25,7 +26,7 @@ RUN mkdir -p /data
 
 # Set default command
 CMD ["python", "-m", "wyoming_faster_whisper", \
-    "--model", "base", \
+    "--model", "nvidia/parakeet-tdt-0.6b-v2", \
     "--uri", "tcp://0.0.0.0:10300", \
     "--data-dir", "./data", \
     "--download-dir", "./models", \

@@ -25,7 +25,7 @@ version = version_path.read_text(encoding="utf-8").strip()
 setup(
     name=module_name,
     version=version,
-    description="Wyoming Server for Faster Whisper",
+    description="Wyoming Server for NeMo Parakeet ASR",
     url="http://github.com/rhasspy/wyoming-faster-whisper",
     author="Michael Hansen",
     author_email="mike@rhasspy.org",
@@ -44,7 +44,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
     ],
-    keywords="rhasspy wyoming whisper stt",
+    keywords="rhasspy wyoming nemo parakeet stt",
     entry_points={
         "console_scripts": ["wyoming-faster-whisper = wyoming_faster_whisper.__main__:run"]
     },

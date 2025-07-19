@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
-"""Main entry point for Wyoming Faster Whisper server."""
+"""Main entry point for Wyoming NeMo Parakeet server."""
 import argparse
 import asyncio
 import logging
 import sys
 from functools import partial
 
-import faster_whisper
+import nemo.collections.asr as nemo_asr
 from wyoming.client import AsyncClient
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer
 
 from . import __version__
-from .handler import FasterWhisperEventHandler
+from .handler import ParakeetEventHandler
 
 _LOGGER = logging.getLogger(__name__)
 
 async def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", required=False, default="tiny", help="Name of faster-whisper model (default: tiny for Apple Silicon)")
+    parser.add_argument("--model", required=False, default="nvidia/parakeet-tdt-0.6b-v2", help="Name of NeMo ASR model (default: nvidia/parakeet-tdt-0.6b-v2)")
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
     parser.add_argument("--data-dir", required=True, action="append", help="Data directory")
     parser.add_argument("--download-dir", help="Directory to download models")
-    parser.add_argument("--device", default="cpu", help="Device for inference")
+    parser.add_argument("--device", default="cuda", help="Device for inference (cuda/cpu)")
     parser.add_argument("--language", help="Default language")
-    parser.add_argument("--compute-type", default="int8", help="Compute type (default: int8 for Apple Silicon)")
-    parser.add_argument("--beam-size", type=int, default=5, help="Beam size")
-    parser.add_argument("--initial-prompt", help="Initial prompt text")
+    parser.add_argument("--beam-size", type=int, default=1, help="Beam size (not used in NeMo greedy decoding)")
+    parser.add_argument("--initial-prompt", help="Initial prompt text (not supported in NeMo)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--embeddings-file", help="Speaker embeddings file")
 
@@ -41,14 +40,12 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
     )
 
-    # Load model
+    # Load NeMo model
     try:
-        whisper_model = faster_whisper.WhisperModel(
-            args.model,
-            download_root=args.download_dir,
-            device=args.device,
-            compute_type=args.compute_type
-        )
+        _LOGGER.info("Loading NeMo ASR model: %s", args.model)
+        asr_model = nemo_asr.models.ASRModel.from_pretrained(model_name=args.model)
+        if args.device == "cuda" and hasattr(asr_model, 'cuda'):
+            asr_model = asr_model.cuda()
         _LOGGER.info("Loaded model: %s", args.model)
     except Exception as e:
         _LOGGER.error("Failed to load model: %s", e)
@@ -57,11 +54,11 @@ async def main() -> None:
     # Create Wyoming info
     wyoming_info = Info(
         asr=[AsrProgram(
-            name="faster-whisper",
-            description="Faster Whisper with speaker ID",
+            name="nemo-parakeet",
+            description="NeMo Parakeet TDT with speaker ID",
             attribution=Attribution(
-                name="Guillaume Klein",
-                url="https://github.com/guillaumekln/faster-whisper/",
+                name="NVIDIA",
+                url="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2",
             ),
             installed=True,
             version=__version__,
@@ -69,12 +66,12 @@ async def main() -> None:
                 name=args.model,
                 description=args.model,
                 attribution=Attribution(
-                    name="Systran",
-                    url="https://huggingface.co/Systran",
+                    name="NVIDIA",
+                    url="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2",
                 ),
                 installed=True,
-                languages=None if args.language else faster_whisper.tokenizer._LANGUAGE_CODES,
-                version=faster_whisper.__version__,
+                languages=["en"] if args.language else ["en"],  # Parakeet is English-only
+                version="0.6b-v2",
             )]
         )]
     )
@@ -90,10 +87,10 @@ async def main() -> None:
     _LOGGER.info("Service ready on %s", args.uri)
     await server.run(
         partial(
-            FasterWhisperEventHandler,
+            ParakeetEventHandler,
             wyoming_info,
             args,
-            whisper_model,
+            asr_model,
             asyncio.Lock(),
             initial_prompt=args.initial_prompt,
         )

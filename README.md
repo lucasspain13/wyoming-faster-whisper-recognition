@@ -1,19 +1,21 @@
-# Wyoming Faster Whisper with Speaker Identification
+# Wyoming NeMo Parakeet with Speaker Identification
 
 ### Forked From
 
 [wyoming-faster-whisper](https://github.com/rhasspy/wyoming-faster-whisper)
 
-Whisper transcription and wyoming communication was provided by the fork. This repository adds a script and instructions for training an embedding file on 1 or more user voices. These user's will be passed to the conversation agent with the transcribed text for personalized threads by user.
+Whisper transcription and Wyoming communication was provided by the fork. This repository replaces the Whisper transcription engine with NVIDIA's NeMo Parakeet TDT 0.6B v2 model for improved accuracy and performance. It also adds a script and instructions for training an embedding file on 1 or more user voices. These users will be passed to the conversation agent with the transcribed text for personalized threads by user.
 
-[Wyoming protocol](https://github.com/rhasspy/wyoming) server for [faster-whisper](https://github.com/guillaumekln/faster-whisper/) with speaker identification.
+[Wyoming protocol](https://github.com/rhasspy/wyoming) server for [NeMo Parakeet TDT](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) with speaker identification.
 
 See more at [my site](https://lucas-spain.com)
 
 ## Features
 
-- Fast, accurate speech-to-text transcription
+- Fast, accurate speech-to-text transcription using NVIDIA's NeMo Parakeet TDT 0.6B v2
 - Speaker identification using voice embeddings
+- Support for punctuation and capitalization
+- Timestamp prediction capabilities
 - Docker support with compose examples
 - Wyoming protocol compatibility
 
@@ -92,7 +94,7 @@ services:
     command:
       [
         "--model",
-        "base",
+        "nvidia/parakeet-tdt-0.6b-v2",
         "--uri",
         "tcp://0.0.0.0:10300",
         "--data-dir",
@@ -112,14 +114,14 @@ pip install -r requirements.txt
 
 # Run
 python -m wyoming_faster_whisper \
-    --model base \
+    --model nvidia/parakeet-tdt-0.6b-v2 \
     --uri tcp://0.0.0.0:10300 \
     --data-dir ./data \
     --embeddings-file ./user_embeddings.pkl
 
 # For first run (with model downloads):
 python -m wyoming_faster_whisper \
-    --model base \
+    --model nvidia/parakeet-tdt-0.6b-v2 \
     --uri tcp://0.0.0.0:10300 \
     --data-dir ./data \
     --download-dir ./models \

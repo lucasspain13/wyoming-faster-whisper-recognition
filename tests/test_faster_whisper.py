@@ -1,4 +1,4 @@
-"""Tests for wyoming-faster-whisper"""
+"""Tests for wyoming-nemo-parakeet"""
 
 import asyncio
 import re
@@ -19,12 +19,12 @@ _LOCAL_DIR = _PROGRAM_DIR / "local"
 _SAMPLES_PER_CHUNK = 1024
 
 # Need to give time for the model to download
-_START_TIMEOUT = 60
+_START_TIMEOUT = 120  # Increased for NeMo model loading
 _TRANSCRIBE_TIMEOUT = 60
 
 
 @pytest.mark.asyncio
-async def test_faster_whisper() -> None:
+async def test_nemo_parakeet() -> None:
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
@@ -32,7 +32,7 @@ async def test_faster_whisper() -> None:
         "--uri",
         "stdio://",
         "--model",
-        "tiny-int8",
+        "nvidia/parakeet-tdt-0.6b-v2",
         "--data-dir",
         str(_LOCAL_DIR),
         "--language",
@@ -59,12 +59,12 @@ async def test_faster_whisper() -> None:
         asr = info.asr[0]
         assert len(asr.models) > 0, "Expected at least one model"
         assert any(
-            m.name == "tiny-int8" for m in asr.models
-        ), "Expected tiny-int8 model"
+            m.name == "nvidia/parakeet-tdt-0.6b-v2" for m in asr.models
+        ), "Expected nvidia/parakeet-tdt-0.6b-v2 model"
         break
 
-    # We want to use the whisper model
-    await async_write_event(Transcribe(name="tiny-int8").event(), proc.stdin)
+    # We want to use the NeMo model
+    await async_write_event(Transcribe(name="nvidia/parakeet-tdt-0.6b-v2").event(), proc.stdin)
 
     # Test known WAV
     with wave.open(str(_DIR / "turn_on_the_living_room_lamp.wav"), "rb") as example_wav:

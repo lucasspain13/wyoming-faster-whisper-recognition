@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0
+
+- **BREAKING CHANGE**: Replaced faster-whisper with NVIDIA NeMo Parakeet TDT 0.6B v2 model
+- Updated dependencies to use `nemo_toolkit[asr]` instead of `faster-whisper`
+- Improved accuracy and performance with state-of-the-art NeMo model
+- Added support for punctuation and capitalization out of the box
+- Updated default model to `nvidia/parakeet-tdt-0.6b-v2`
+- Enhanced speaker identification to work with preprocessed audio arrays
+- Updated Docker configuration for NeMo requirements
+
 ## 2.4.0
 
 - Add "auto" for model and beam size (0) to select values based on CPU
@@ -32,4 +42,3 @@
 ## 1.0.0
 
 - Initial release
-
