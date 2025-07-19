@@ -97,6 +97,8 @@ services:
         "nvidia/parakeet-tdt-0.6b-v2",
         "--uri",
         "tcp://0.0.0.0:10300",
+        "--device",
+        "auto",
         "--data-dir",
         "/data",
         "--embeddings-file",
@@ -112,10 +114,11 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Run
+# Run (auto-detects best device)
 python -m wyoming_faster_whisper \
     --model nvidia/parakeet-tdt-0.6b-v2 \
     --uri tcp://0.0.0.0:10300 \
+    --device auto \
     --data-dir ./data \
     --embeddings-file ./user_embeddings.pkl
 
@@ -123,6 +126,7 @@ python -m wyoming_faster_whisper \
 python -m wyoming_faster_whisper \
     --model nvidia/parakeet-tdt-0.6b-v2 \
     --uri tcp://0.0.0.0:10300 \
+    --device auto \
     --data-dir ./data \
     --download-dir ./models \
     --embeddings-file ./user_embeddings.pkl

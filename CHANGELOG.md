@@ -9,6 +9,8 @@
 - Updated default model to `nvidia/parakeet-tdt-0.6b-v2`
 - Enhanced speaker identification to work with preprocessed audio arrays
 - Updated Docker configuration for NeMo requirements
+- Added automatic device detection (auto/cuda/cpu) with fallback to CPU
+- Fixed Docker CUDA compatibility issues with auto device selection
 
 ## 2.4.0
 

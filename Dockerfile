@@ -28,6 +28,7 @@ RUN mkdir -p /data
 CMD ["python", "-m", "wyoming_faster_whisper", \
     "--model", "nvidia/parakeet-tdt-0.6b-v2", \
     "--uri", "tcp://0.0.0.0:10300", \
+    "--device", "auto", \
     "--data-dir", "./data", \
     "--download-dir", "./models", \
     "--embeddings-file", "./data/user_embeddings.pkl", "--debug"]

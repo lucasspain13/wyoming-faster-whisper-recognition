@@ -23,7 +23,7 @@ async def main() -> None:
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
     parser.add_argument("--data-dir", required=True, action="append", help="Data directory")
     parser.add_argument("--download-dir", help="Directory to download models")
-    parser.add_argument("--device", default="cuda", help="Device for inference (cuda/cpu)")
+    parser.add_argument("--device", default="auto", help="Device for inference (auto/cuda/cpu)")
     parser.add_argument("--language", help="Default language")
     parser.add_argument("--beam-size", type=int, default=1, help="Beam size (not used in NeMo greedy decoding)")
     parser.add_argument("--initial-prompt", help="Initial prompt text (not supported in NeMo)")
@@ -40,13 +40,34 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
     )
 
+    # Auto-detect device if not specified
+    if args.device == "auto":
+        import torch
+        if torch.cuda.is_available():
+            args.device = "cuda"
+            _LOGGER.info("Auto-detected CUDA device")
+        else:
+            args.device = "cpu"
+            _LOGGER.info("Auto-detected CPU device (CUDA not available)")
+    else:
+        _LOGGER.info("Using specified device: %s", args.device)
+
     # Load NeMo model
     try:
         _LOGGER.info("Loading NeMo ASR model: %s", args.model)
         asr_model = nemo_asr.models.ASRModel.from_pretrained(model_name=args.model)
-        if args.device == "cuda" and hasattr(asr_model, 'cuda'):
-            asr_model = asr_model.cuda()
-        _LOGGER.info("Loaded model: %s", args.model)
+        
+        # Move model to appropriate device
+        if args.device == "cuda":
+            import torch
+            if torch.cuda.is_available():
+                asr_model = asr_model.cuda()
+                _LOGGER.info("Model moved to CUDA")
+            else:
+                _LOGGER.warning("CUDA requested but not available, using CPU")
+                args.device = "cpu"
+        
+        _LOGGER.info("Loaded model: %s on device: %s", args.model, args.device)
     except Exception as e:
         _LOGGER.error("Failed to load model: %s", e)
         sys.exit(1)
